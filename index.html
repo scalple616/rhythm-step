@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>跺节拍 Rhythm Step · 一跺一词</title>
+<meta name="description" content="踩着节拍背书：每四拍记一个知识点。离线可用、零依赖、单文件。Rhythmic stepping for study — one idea per four beats.">
+<style>
+  :root{
+    --paper:#f4f1ea; --paper-2:#fbf9f4; --ink:#20262b; --ink-2:#4a555e; --ink-3:#7b868f;
+    --celadon:#5f8a86; --celadon-soft:#dce8e5; --amber:#b5762a; --amber-soft:#f0e2cd;
+    --line:#ddd7ca; --shadow:0 1px 2px rgba(32,38,43,.05),0 8px 24px rgba(32,38,43,.06);
+    --ok:#4f7a4a; --warn:#b0553a;
+    --r:14px; --maxw:960px;
+  }
+  html[data-theme="dark"]{
+    --paper:#14181b; --paper-2:#1b2024; --ink:#e8e4dc; --ink-2:#b3bcc2; --ink-3:#7d878e;
+    --celadon:#7fb0aa; --celadon-soft:#22322f; --amber:#d5a05c; --amber-soft:#332a1d;
+    --line:#2b3237; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    --ok:#7fae76; --warn:#d1775a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+    padding:0 16px 96px;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto}
+  header{padding:40px 0 24px;border-bottom:1px solid var(--line)}
+  .brandrow{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  h1{font-size:1.9rem;margin:0;letter-spacing:-.01em;font-weight:650}
+  .en{color:var(--ink-3);font-size:.95rem;font-weight:400;margin-top:2px}
+  .tagline{color:var(--ink-2);margin:14px 0 0;max-width:62ch}
+  .tagline b{color:var(--ink);font-weight:600}
+  .spacer{flex:1}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .btn{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    padding:8px 14px;transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--celadon);color:var(--celadon)}
+  .btn:active{transform:translateY(1px)}
+  .btn.icon{padding:8px 11px;font-size:.9rem}
+
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px;margin-top:20px}
+  .card h2{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:600}
+
+  /* ---------- stage ---------- */
+  .stage{display:grid;grid-template-columns:1fr;gap:20px}
+  @media(min-width:820px){.stage{grid-template-columns:1.15fr .85fr}}
+
+  .dial{display:flex;flex-direction:column;align-items:center;gap:18px;padding:12px 0}
+  .ringwrap{position:relative;width:260px;height:260px;display:grid;place-items:center}
+  svg.ring{position:absolute;inset:0;transform:rotate(-90deg)}
+  .beatdots{display:flex;gap:10px;margin-top:-8px}
+  .bd{width:11px;height:11px;border-radius:50%;background:var(--line);transition:.1s}
+  .bd.on{background:var(--celadon);transform:scale(1.45)}
+  .bd.one{background:var(--amber);transform:scale(1.45)}
+  .pulse{position:absolute;width:150px;height:150px;border-radius:50%;background:var(--celadon-soft);opacity:0;transition:opacity .18s}
+  .phasebox{text-align:center;min-height:4.6em}
+  .phase{font-size:1.22rem;font-weight:600;letter-spacing:.01em}
+  .phasetip{color:var(--ink-3);font-size:.86rem;margin-top:2px}
+  .count{font-variant-numeric:tabular-nums;font-size:2.05rem;font-weight:650;letter-spacing:-.02em}
+  .countlbl{color:var(--ink-3);font-size:.8rem;letter-spacing:.09em;text-transform:uppercase}
+
+  /* ---------- controls ---------- */
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row.tight{gap:8px}
+  .row.between{justify-content:space-between}
+  .grow{flex:1}
+  input[type=range]{width:100%;accent-color:var(--celadon)}
+  .field{margin-top:16px}
+  .field label{display:flex;justify-content:space-between;font-size:.86rem;color:var(--ink-2);margin-bottom:6px}
+  .field label b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+  select,input[type=number]{
+    background:var(--paper);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:9px 11px;font:inherit;font-size:.92rem;width:100%;
+  }
+  .presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:10px}
+  .preset{
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center;line-height:1.35;
+  }
+  .preset:hover{border-color:var(--celadon)}
+  .preset .pv{font-weight:650;font-variant-numeric:tabular-nums}
+  .preset .pl{font-size:.74rem;color:var(--ink-3)}
+
+  .transport{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:6px}
+  .play{
+    width:62px;height:62px;border-radius:50%;border:none;background:var(--celadon);color:#fff;
+    display:grid;place-items:center;box-shadow:0 4px 14px rgba(95,138,134,.34);transition:.15s;
+  }
+  .play:hover{filter:brightness(1.06)}
+  .play:active{transform:scale(.96)}
+  .play svg{width:24px;height:24px;fill:#fff}
+  .play.stop{background:var(--warn);box-shadow:0 4px 14px rgba(176,85,58,.32)}
+
+  /* ---------- stomp pad ---------- */
+  .pad{
+    width:100%;min-height:112px;border-radius:var(--r);border:2px dashed var(--line);
+    background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    transition:.1s;user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  .pad:active,.pad.hit{background:var(--celadon-soft);border-color:var(--celadon);transform:scale(.99)}
+  .pad .big{font-size:1.5rem;font-weight:650}
+  .pad .sm{font-size:.8rem;color:var(--ink-3)}
+  kbd{background:var(--paper);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-size:.78em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper-2);padding:14px 10px;text-align:center}
+  .stat .v{font-size:1.45rem;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2}
+  .stat .k{font-size:.72rem;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase;margin-top:2px}
+  .chart{display:flex;align-items:flex-end;gap:6px;height:88px;margin-top:16px}
+  .chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+  .chart .bar{width:100%;background:var(--celadon-soft);border-radius:5px 5px 2px 2px;min-height:3px;transition:.2s}
+  .chart .bar.today{background:var(--amber)}
+  .chart .lb{font-size:.68rem;color:var(--ink-3)}
+
+  .note{border-left:3px solid var(--celadon);background:var(--celadon-soft);padding:12px 15px;border-radius:0 10px 10px 0;font-size:.88rem;color:var(--ink-2);margin-top:16px}
+  .note.warn{border-color:var(--warn);background:var(--amber-soft)}
+  .note b{color:var(--ink)}
+  details{margin-top:14px;font-size:.89rem;color:var(--ink-2)}
+  summary{cursor:pointer;color:var(--ink);font-weight:550;font-size:.92rem}
+  details ul{margin:10px 0 0;padding-left:20px}
+  details li{margin:5px 0}
+  a{color:var(--celadon)}
+  footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.83rem}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,80px);
+    background:var(--ink);color:var(--paper);padding:11px 20px;border-radius:11px;
+    font-size:.88rem;box-shadow:var(--shadow);transition:.25s;z-index:50;opacity:0;pointer-events:none;
+  }
+  .toast.on{transform:translate(-50%,0);opacity:1}
+  .hide{display:none !important}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+  @media print{.card{box-shadow:none}button,.transport{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brandrow">
+    <div>
+      <h1>跺节拍 <span class="en">Rhythm Step</span></h1>
+      <p class="tagline">
+        <b>一跺一词。</b>跟着节拍跺脚，每四拍认领一个知识点——身体的下落沿替大脑划好了分界线。
+        <span class="en" style="display:block;margin-top:4px">
+          One idea per four beats. Step on the beat and claim a new point every bar.
+        </span>
+      </p>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn icon" id="themeBtn" title="切换主题 / Theme">◐</button>
+    <button class="btn icon" id="langBtn" title="切换语言 / Language">EN</button>
+  </div>
+</header>
+
+<main>
+<div class="stage">
+
+  <!-- ============ 左：节拍台 ============ -->
+  <section class="card" style="margin-top:20px">
+    <h2 data-zh="节拍台" data-en="The Beat">节拍台</h2>
+    <div class="dial">
+      <div class="ringwrap">
+        <div class="pulse" id="pulse"></div>
+        <svg class="ring" viewBox="0 0 260 260" aria-hidden="true">
+          <circle cx="130" cy="130" r="116" fill="none" stroke="var(--line)" stroke-width="7"/>
+          <circle id="prog" cx="130" cy="130" r="116" fill="none" stroke="var(--celadon)" stroke-width="7"
+                  stroke-linecap="round" stroke-dasharray="728.8" stroke-dashoffset="728.8"/>
+        </svg>
+        <div>
+          <div class="count" id="barCount">0</div>
+          <div class="countlbl" data-zh="小节 / 已学点" data-en="bars / points">小节 / 已学点</div>
+        </div>
+      </div>
+      <div class="beatdots" id="dots"><div class="bd one"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div></div>
+      <div class="phasebox">
+        <div class="phase" id="phaseName" data-zh="准备好了" data-en="Ready">准备好了</div>
+        <div class="phasetip" id="phaseTip" data-zh="按播放，跟着数「一、二、三、四」" data-en="Press play, count “1, 2, 3, 4”">按播放，跟着数「一、二、三、四」</div>
+      </div>
+      <div class="transport">
+        <button class="btn" id="tapBtn" title="Tap tempo">Tap</button>
+        <button class="play" id="playBtn" aria-label="播放/暂停"><svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="btn" id="resetBtn" data-zh="重置" data-en="Reset">重置</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label><span data-zh="速度" data-en="Tempo">速度</span> <b><span id="bpmOut">96</span> BPM</b></label>
+      <input type="range" id="bpm" min="40" max="180" step="1" value="96">
+      <div class="presets" id="presets">
+        <button class="preset" data-bpm="60"><div class="pv">60</div><div class="pl" data-zh="静心" data-en="Calm">静心</div></button>
+        <button class="preset" data-bpm="80"><div class="pv">80</div><div class="pl" data-zh="预习" data-en="Warm">预习</div></button>
+        <button class="preset" data-bpm="96"><div class="pv">96</div><div class="pl" data-zh="背记" data-en="Recall">背记</div></button>
+        <button class="preset" data-bpm="120"><div class="pv">120</div><div class="pl" data-zh="复述" data-en="Speak">复述</div></button>
+        <button class="preset" data-bpm="144"><div class="pv">144</div><div class="pl" data-zh="冲刺" data-en="Sprint">冲刺</div></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label><span data-zh="步幅（每几步认领一个知识点）" data-en="Stride (steps per point)">步幅（每几步认领一个知识点）</span></label>
+      <select id="stride">
+        <option value="2">2 拍 · 轻快（材料多）</option>
+        <option value="4" selected>4 拍 · 标准（推荐，有研究支持）</option>
+        <option value="8">8 拍 · 舒缓（材料难）</option>
+        <option value="0">整小节 · 最慢</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label><span data-zh="一轮几小节" data-en="Bars per round">一轮几小节</span> <b id="barsOut">8</b></label>
+      <input type="range" id="bars" min="1" max="32" step="1" value="8">
+    </div>
+  </section>
+
+  <!-- ============ 右：跺脚板 + 记录 ============ -->
+  <div>
+    <section class="card" style="margin-top:20px">
+      <h2 data-zh="跺脚板" data-en="Stomp Pad">跺脚板</h2>
+      <button class="pad" id="pad">
+        <div class="big" data-zh="跺！" data-en="Step!">跺！</div>
+        <div class="sm" data-zh="点我，或按空格键" data-en="Tap here, or press Space">点我，或按 <kbd>空格</kbd></div>
+      </button>
+      <div class="row between" style="margin-top:14px">
+        <div>
+          <div class="countlbl" data-zh="本次跺脚" data-en="Steps">本次跺脚</div>
+          <div class="count" id="stepCount" style="font-size:1.6rem">0</div>
+        </div>
+        <div style="text-align:right">
+          <div class="countlbl" data-zh="踩点准确率" data-en="On-beat">踩点准确率</div>
+          <div class="count" id="accOut" style="font-size:1.6rem">—</div>
+        </div>
+      </div>
+      <div class="note">
+        <b data-zh="为什么要数拍子？" data-en="Why count?">为什么要数拍子？</b>
+        <span data-zh="不是玄学。Schmidt-Kassow 等人把单词呈现对齐到踏步节奏（每四步一个词），被试的自由回忆明显优于静坐与无节奏对照。身体的周期替大脑划出了编码的分界线。"
+             data-en="Not mysticism. Schmidt-Kassow and colleagues aligned word presentation to step cadence (one word every fourth stride); free recall beat both seated and unrhythmic control conditions. Your body's cycle draws the encoding boundary for your brain.">
+          不是玄学。Schmidt-Kassow 等人把单词呈现对齐到踏步节奏（每四步一个词），被试的自由回忆明显优于静坐与无节奏对照。身体的周期替大脑划出了编码的分界线。</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 data-zh="这一周" data-en="This week">这一周</h2>
+      <div class="stats">
+        <div class="stat"><div class="v" id="sSteps">0</div><div class="k" data-zh="总跺数" data-en="Steps">总跺数</div></div>
+        <div class="stat"><div class="v" id="sDays">0</div><div class="k" data-zh="天数" data-en="Days">天数</div></div>
+        <div class="stat"><div class="v" id="sStreak">0</div><div class="k" data-zh="连续" data-en="Streak">连续</div></div>
+        <div class="stat"><div class="v" id="sMin">0</div><div class="k" data-zh="分钟" data-en="Min">分钟</div></div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn" id="exportBtn" data-zh="导出记录" data-en="Export">导出记录</button>
+        <button class="btn" id="clearBtn" data-zh="清空记录" data-en="Clear">清空记录</button>
+        <span class="grow"></span>
+        <span style="font-size:.78rem;color:var(--ink-3)" data-zh="数据只存在这台设备上" data-en="Data stays on this device">数据只存在这台设备上</span>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<section class="card">
+  <h2 data-zh="怎么用（三步）" data-en="How to use">怎么用（三步）</h2>
+  <details open>
+    <summary>1 · 先把材料摊开，一张纸，一条知识点一行</summary>
+    <span data-zh="不要合上书。跺第 4 下的时候，你认领的那一行就要能读出来。"
+         data-en="Keep it open. When the fourth beat lands, the line you claim must be readable out loud.">不要合上书。跺第 4 下的时候，你认领的那一行就要能读出来。</span>
+  </details>
+  <details>
+    <summary>2 · 跟着拍子落脚，不追拍</summary>
+    <span data-zh="宁可慢半拍，不可抢半拍。呼吸放在每一小节的开头：吸——一、二、三、四；呼——一、二、三、四。错拍不扣分，回来就行。"
+         data-en="Late is fine, rushing is not. Breathe at the top of each bar. Miss a beat and just come back — no penalty.">宁可慢半拍，不可抢半拍。呼吸放在每一小节的开头：吸——一、二、三、四；呼——一、二、三、四。错拍不扣分，回来就行。</span>
+  </details>
+  <details>
+    <summary>3 · 一轮结束，回读一遍再走</summary>
+    <span data-zh="合上材料，凭记忆复述这一轮的内容。复述不出来的，就是下一轮要重来一次的行。间隔重复之所以有效，靠的就是这一步——诚实地失败。"
+         data-en="Close it and recite the round from memory. Whatever you cannot say is what you repeat next round. Spaced repetition lives or dies on this step — failing honestly.">合上材料，凭记忆复述这一轮的内容。复述不出来的，就是下一轮要重来一次的行。间隔重复之所以有效，靠的就是这一步——诚实地失败。</span>
+  </details>
+  <div class="note warn">
+    <b data-zh="边界" data-en="Limits">边界</b>
+    <span data-zh="这是一个节律工具，不是医疗产品。运动对认知的即时增益在文献里效应量不大，且更明显地体现在加工速度而非准确率上（Chang et al., 2012；Ludyga et al., 2016）。它真正稳的收益是：给你一个把复习切成块的物理理由，以及一个让你愿意每天坐下来的理由。关节不适、眩晕或有心血管病史者，请先问医生。"
+         data-en="A rhythm tool, not a medical device. Acute effects of exercise on cognition are small in effect size and show up more in processing speed than accuracy (Chang et al., 2012; Ludyga et al., 2016). What is genuinely solid here is a physical excuse to chunk your revision, and a reason to sit down daily. If you have joint pain, dizziness, or cardiovascular history, ask your doctor first.">
+      这是一个节律工具，不是医疗产品。运动对认知的即时增益在文献里效应量不大，且更明显地体现在加工速度而非准确率上。它真正稳的收益是：给你一个把复习切成块的物理理由，以及一个让你愿意每天坐下来的理由。关节不适、眩晕或有心血管病史者，请先问医生。</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2 data-zh="证据从哪来" data-en="Where the evidence comes from">证据从哪来</h2>
+  <ul style="margin:0;padding-left:20px;color:var(--ink-2);font-size:.9rem;line-height:1.85">
+    <li><b>认知-运动节律同步（cognitive-motor entrainment）</b>：把学习材料的呈现对齐到人的运动周期，情节记忆的保持更好。Schmidt-Kassow et al., 2010 / 2013 / 2014；Scott, Schmid &amp; Tomporowski, 2024（<i>Psychology of Sport and Exercise</i>）；Schmid, 2025（<i>Acta Psychologica</i>）。</li>
+    <li><b>节律听觉刺激（RAS）</b>：外部节拍能把人的运动频率锁定过去，说明"给一个稳定的时钟，人会去合它"。McIntosh, Brown, Rice &amp; Thaut, 1995（<i>JNNP</i>）。</li>
+    <li><b>一次急性运动的认知效应</b>：执行功能的小幅即时提升，20 分钟、中等强度是最优区间；效应量不大。Chang et al., 2012（<i>Psychological Bulletin</i>）；Ludyga et al., 2016。</li>
+    <li><b>综述</b>：Schmidt-Kassow &amp; Kaiser, 2023；Tomporowski &amp; Qazi, 2020（<i>Psychology of Sport and Exercise</i>）。</li>
+  </ul>
+  <div class="note">
+    <span data-zh="诚实地说一句：2025 年那篇作者自己也提醒，效果可能来自"有节奏"或"可预测"本身，而不一定来自"同步"。我们把它当成一个待验证的假设，而不是已证实的结论——这个仓库的存在就是为了让更多人去测它。"
+         data-en="To be fair: the 2025 authors themselves note the effect may stem from rhythm or predictability alone rather than synchrony itself. We treat it as a hypothesis to be tested, not a settled result — this repo exists so more people can test it.">
+      诚实地说一句：2025 年那篇作者自己也提醒，效果可能来自"有节奏"或"可预测"本身，而不一定来自"同步"。我们把它当成一个待验证的假设，而不是已证实的结论——这个仓库的存在就是为了让更多人去测它。</span>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p data-zh="MIT 协议 · 单文件、离线可用、无追踪、无账号。数据只留在你的浏览器里。"
+     data-en="MIT licensed · single file, works offline, no tracking, no accounts. Your data stays in your browser.">
+    MIT 协议 · 单文件、离线可用、无追踪、无账号。数据只留在你的浏览器里。</p>
+</footer>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- constants ---------------- */
+  var BEATS = 4;                 // beats per bar (one bar = one stomp claim)
+  var KEY = "rhythm-step.v1";
+
+  /* ---------------- dom ---------------- */
+  function $(id){ return document.getElementById(id); }
+  var el = {
+    bpm:$("bpm"), bpmOut:$("bpmOut"), bars:$("bars"), barsOut:$("barsOut"), stride:$("stride"),
+    play:$("playBtn"), playIcon:$("playIcon"), tap:$("tapBtn"), reset:$("resetBtn"),
+    prog:$("prog"), pulse:$("pulse"), dots:$("dots"), phaseName:$("phaseName"), phaseTip:$("phaseTip"),
+    barCount:$("barCount"), pad:$("pad"), stepCount:$("stepCount"), accOut:$("accOut"),
+    chart:$("chart"), toast:$("toast"), root:document.documentElement
+  };
+  var CIRC = 2*Math.PI*116;
+
+  /* ---------------- i18n ---------------- */
+  var LANG = "zh";
+  var saved = null;
+  /* localStorage 在部分场景（隐私模式、某些 file:// 协议）会直接抛异常，
+     读和写都必须兜住，否则整页初始化就崩了 */
+  try{ saved = JSON.parse(localStorage.getItem(KEY) || "null"); }catch(e){ saved = null; }
+  var stats = (saved && saved.stats && saved.stats.days) ? saved.stats : { days:{}, lang:"zh", theme:null, bpm:96 };
+
+  function t(zh,en){ return LANG==="zh" ? zh : en; }
+  function applyLang(){
+    document.documentElement.lang = LANG==="zh" ? "zh-CN" : "en";
+    var n = document.querySelectorAll("[data-zh]");
+    for(var i=0;i<n.length;i++){
+      n[i].textContent = LANG==="zh" ? n[i].getAttribute("data-zh") : n[i].getAttribute("data-en");
+    }
+    $("langBtn").textContent = LANG==="zh" ? "EN" : "中";
+    // 阶段提示由 phase() 在运行时写入，属性换完后按当前状态重刷
+    if(!running) phase("idle");
+    $("stride").options[0].textContent = LANG==="zh" ? "2 拍 · 轻快（材料多）" : "2 beats · light (lots of material)";
+    $("stride").options[1].textContent = LANG==="zh" ? "4 拍 · 标准（推荐，有研究支持）" : "4 beats · standard (research-backed)";
+    $("stride").options[2].textContent = LANG==="zh" ? "8 拍 · 舒缓（材料难）" : "8 beats · slow (hard material)";
+    $("stride").options[3].textContent = LANG==="zh" ? "整小节 · 最慢" : "whole bar · slowest";
+    drawChart();
+  }
+
+  /* ---------------- theme ---------------- */
+  function applyTheme(){
+    var pref = stats.theme;
+    if(!pref){
+      pref = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    el.root.setAttribute("data-theme", pref);
+  }
+
+  /* ---------------- audio (lookahead scheduler) ----------------
+     setInterval is jittery; we schedule clicks ~120ms ahead on the audio clock. */
+  var actx = null, timer = null, nextTime = 0, beatIndex = 0, running = false, saveTicker = null;
+  var bpm = stats.bpm || 96, barsPerRound = 8;
+  var barsDone = 0, steps = 0, hits = 0, nearMiss = 0;
+
+  function audio(){
+    if(!actx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return null;
+      actx = new AC();
+    }
+    if(actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function click(time, accent){
+    var a = audio(); if(!a) return;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = accent ? "triangle" : "sine";
+    o.frequency.value = accent ? 1180 : 780;
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(accent ? 0.30 : 0.16, time + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.085);
+    o.connect(g); g.connect(a.destination);
+    o.start(time); o.stop(time + 0.10);
+  }
+  function schedule(){
+    var a = audio(); if(!a) return;
+    var spb = 60 / bpm;
+    while(nextTime < a.currentTime + 0.12){
+      var inBar = beatIndex % BEATS;
+      click(nextTime, inBar===0);
+      flash(inBar, nextTime - a.currentTime);
+      var stride = parseInt(el.stride.value,10);
+      if(inBar === 0){
+        barsDone++;
+        el.barCount.textContent = barsDone;
+        var frac = (barsDone % barsPerRound) / barsPerRound;
+        el.prog.setAttribute("stroke-dashoffset", String(CIRC*(1-frac)));
+        phase(barsDone % barsPerRound === 0 ? "round" : "claim");
+        if(barsDone % barsPerRound === 0){
+          setTimeout(function(){ click(a.currentTime+0.02, true); }, spb*BEATS*1000);
+          phase("review");
+        }
+        markDay();
+      }
+      beatIndex++;
+      nextTime += spb;
+    }
+  }
+  function flash(inBar, delay){
+    var d = Math.max(0, delay*1000);
+    setTimeout(function(){
+      var dots = el.dots.children;
+      for(var i=0;i<dots.length;i++) dots[i].className = "bd" + (i===inBar ? (inBar===0?" one":" on") : "");
+      el.pulse.style.opacity = inBar===0 ? "0.30" : "0.15";
+      el.pulse.style.transform = "scale(" + (inBar===0 ? "1.12":"1") + ")";
+      setTimeout(function(){ el.pulse.style.opacity = "0"; }, 90);
+    }, d);
+  }
+  function phase(kind){
+    var m = {
+      claim:["认领一个点","Claim a point","这一拍归你：把那一行读出来","This beat is yours — read that line aloud"],
+      round:["这一轮走完了","Round complete","合上材料，凭记忆复述","Close it. Recite from memory."],
+      review:["复述","Recite","说不出来的，就是下一轮的","What you miss is what you repeat"],
+      idle:["准备好了","Ready","按播放，跟着数「一、二、三、四」","Press play, count “1, 2, 3, 4”"]
+    };
+    var p = m[kind] || m.idle;
+    // p = [中文标题, 英文标题, 中文提示, 英文提示]；显示哪一组由 LANG 决定
+    el.phaseName.setAttribute("data-zh", p[0]); el.phaseName.setAttribute("data-en", p[1]);
+    el.phaseTip.setAttribute("data-zh",  p[2]); el.phaseTip.setAttribute("data-en",  p[3]);
+    el.phaseName.textContent = LANG==="zh" ? p[0] : p[1];
+    el.phaseTip.textContent  = LANG==="zh" ? p[2] : p[3];
+  }
+
+  function start(){
+    var a = audio(); if(!a){ toast(t("这个浏览器不支持音频，看拍子闪灯也行","No audio here — follow the flashing dots")); }
+    if(timer) return;
+    running = true;
+    nextTime = a ? a.currentTime + 0.08 : 0;
+    beatIndex = 0;
+    timer = setInterval(schedule, 25);
+    el.play.classList.add("stop");
+    el.play.setAttribute("aria-label","Stop");
+    el.playIcon.innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
+    phase("claim");
+    startTimer();
+    saveTicker = setInterval(saveStats, 5000);
+  }
+  function stop(){
+    running = false;
+    if(timer){ clearInterval(timer); timer = null; }
+    el.play.classList.remove("stop");
+    el.play.setAttribute("aria-label","Play");
+    el.playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    el.pulse.style.opacity = "0";
+    for(var i=0;i<el.dots.children.length;i++) el.dots.children[i].className = "bd";
+    el.prog.setAttribute("stroke-dashoffset", String(CIRC));
+    phase("idle");
+    stopTimer();
+    if(saveTicker){ clearInterval(saveTicker); saveTicker = null; }
+    saveStats();
+  }
+  function reset(){
+    barsDone = 0; steps = 0; hits = 0; nearMiss = 0;
+    el.barCount.textContent = "0";
+    el.stepCount.textContent = "0";
+    el.accOut.textContent = "—";
+    el.prog.setAttribute("stroke-dashoffset", String(CIRC));
+    saveStats();
+    toast(t("归零了","Reset"));
+  }
+
+  /* ---------------- tap tempo ---------------- */
+  var taps = [];
+  el.tap.addEventListener("click", function(){
+    var now = performance.now();
+    taps = taps.filter(function(x){ return now-x < 2400; });
+    taps.push(now);
+    if(taps.length >= 3){
+      var sum = 0;
+      for(var i=1;i<taps.length;i++) sum += taps[i]-taps[i-1];
+      var iv = sum/(taps.length-1);
+      bpm = Math.round(Math.max(40, Math.min(180, 60000/iv)));
+      el.bpm.value = bpm; el.bpmOut.textContent = bpm;
+    }
+  });
+
+  /* ---------------- stomps & accuracy ---------------- */
+  var lastStepAt = 0;
+  function stomp(){
+    steps++;
+    el.stepCount.textContent = steps;
+    markDay();
+    stats.days[today()].steps += 1;
+    drawChart();
+    var a = actx;
+    if(running && a){
+      var now = a.currentTime;
+      var phasePos = ((now - nextTime) / (60/bpm)) % 1;   // negative-ish, wrapped
+      var spb = 60/bpm;
+      var off = Math.abs(phasePos)*spb;                    // seconds from nearest beat
+      var tol = spb*0.25;
+      if(off <= tol){ hits++; }
+      else if(off <= spb*0.45){ hits += 0.5; nearMiss++; }
+      el.accOut.textContent = Math.round(hits/steps*100) + "%";
+    }
+    lastStepAt = performance.now();
+    el.pad.classList.add("hit");
+    setTimeout(function(){ el.pad.classList.remove("hit"); }, 110);
+  }
+  el.pad.addEventListener("click", stomp);
+  document.addEventListener("keydown", function(e){
+    if(e.code === "Space" && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)){
+      e.preventDefault(); stomp();
+    }
+  });
+
+  /* ---------------- session timer ---------------- */
+  var tId = null, t0 = 0;
+  function startTimer(){ if(tId) return; t0 = Date.now(); tId = setInterval(onTick, 1000); }
+  function stopTimer(){ if(tId){ clearInterval(tId); tId = null; saveStats(); } }
+  function onTick(){
+    var mins = Math.floor((Date.now()-t0)/60000);
+    if(mins>0){ stats.days[today()] = (stats.days[today()]||{steps:0,min:0}); stats.days[today()].min += 1; }
+  }
+
+  /* ---------------- persistence ---------------- */
+  function today(){
+    var d = new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function markDay(){
+    var k = today();
+    if(!stats.days[k]) stats.days[k] = { steps:0, min:0 };
+  }
+  function saveStats(){
+    stats.bpm = bpm; stats.lang = LANG;
+    stats.langTheme = stats.langTheme || null;
+    try{ localStorage.setItem(KEY, JSON.stringify({ stats:stats })); }catch(e){}
+    drawChart();
+  }
+  function drawChart(){
+    var days = [], d = new Date();
+    for(var i=6;i>=0;i--){
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()-i);
+      var k = x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+      days.push({ k:k, lb:["日","一","二","三","四","五","六"][x.getDay()], v:((stats.days[k]&&stats.days[k].steps)||0) });
+    }
+    var max = Math.max(1, Math.max.apply(null, days.map(function(x){return x.v;})));
+    var tot=0, act=0, streak=0;
+    for(var j=0;j<days.length;j++){
+      tot += days[j].v;
+      if(days[j].v>0) act++;
+      if(days[days.length-1-j].v>0) streak++; else break;
+    }
+    $("sSteps").textContent = tot;
+    $("sDays").textContent  = act;
+    $("sStreak").textContent = streak;
+    var mins=0; for(var kk in stats.days){ var dd=stats.days[kk]; if(dd && typeof dd.min==="number") mins+=dd.min; }
+    $("sMin").textContent = mins;
+
+    var html = "";
+    for(var m=0;m<days.length;m++){
+      var h = Math.round(days[m].v/max*100);
+      html += '<div class="col"><div class="bar'+(days[m].k===today()?" today":"")+'" style="height:'+Math.max(3,h)+'%" title="'+days[m].k+': '+days[m].v+'"></div><div class="lb">'+days[m].lb+'</div></div>';
+    }
+    el.chart.innerHTML = html;
+  }
+
+  /* ---------------- controls ---------------- */
+  el.bpm.addEventListener("input", function(){ bpm = +el.bpm.value; el.bpmOut.textContent = bpm; });
+  el.bpm.addEventListener("change", saveStats);
+  el.bars.addEventListener("input", function(){ barsPerRound = +el.bars.value; el.barsOut.textContent = barsPerRound; el.prog.setAttribute("stroke-dashoffset", String(CIRC*((barsDone % barsPerRound)/barsPerRound))); });
+  document.getElementById("presets").addEventListener("click", function(e){
+    var b = e.target.closest(".preset"); if(!b) return;
+    bpm = +b.dataset.bpm; el.bpm.value = bpm; el.bpmOut.textContent = bpm; saveStats();
+  });
+  el.play.addEventListener("click", function(){ running ? stop() : start(); });
+  el.reset.addEventListener("click", reset);
+
+  $("themeBtn").addEventListener("click", function(){
+    stats.theme = el.root.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    applyTheme(); saveStats();
+  });
+  $("langBtn").addEventListener("click", function(){ LANG = LANG==="zh" ? "en" : "zh"; applyLang(); saveStats(); });
+  $("exportBtn").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(stats,null,2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "rhythm-step-" + today() + ".json";
+    a.click(); URL.revokeObjectURL(a.href);
+    toast(t("已导出","Exported"));
+  });
+  $("clearBtn").addEventListener("click", function(){
+    if(!confirm(t("清空这台设备上的全部记录？不可撤销。","Erase all records on this device? This cannot be undone."))) return;
+    stats.days = {}; drawChart(); saveStats();
+    toast(t("已清空","Cleared"));
+  });
+
+  /* ---------------- toast ---------------- */
+  var toastT = null;
+  function toast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add("on");
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ el.toast.classList.remove("on"); }, 2200);
+  }
+
+  /* ---------------- boot ---------------- */
+  applyTheme();
+  LANG = stats.lang || "zh";
+  bpm = stats.bpm || 96;
+  el.bpm.value = bpm; el.bpmOut.textContent = bpm;
+  el.barsOut.textContent = barsPerRound;
+  applyLang();
+  drawChart();
+  document.addEventListener("visibilitychange", function(){ if(document.hidden) saveStats(); });
+  window.addEventListener("beforeunload", saveStats);
+
+  /* expose for smoke tests */
+  window.__rs = {
+    state:function(){ return { bpm:bpm, bars:barsDone, steps:steps, running:running }; },
+    setBpm:function(v){ bpm=v; el.bpm.value=v; el.bpmOut.textContent=v; },
+    start:start, stop:stop, stomp:stomp, reset:reset
+  };
+})();
+</script>
+</body>
+</html>

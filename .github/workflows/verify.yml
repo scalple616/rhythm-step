@@ -1,0 +1,35 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install test-only dependency
+        run: npm install jsdom --no-save --no-audit --no-fund
+
+      - name: Run verification suite
+        run: node _verify.js
+
+      - name: Check index.html has no external references
+        run: |
+          if grep -qE '<(script|img|link)[^>]+(src|href)="https?://' index.html; then
+            echo "::error::index.html 引入了外部资源，违反「单文件离线可用」原则"
+            exit 1
+          fi
+          echo "OK: 无外部引用"

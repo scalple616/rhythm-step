@@ -1,0 +1,22 @@
+name: Star History
+
+on:
+  schedule:
+    # 每 6 小时跑一次（UTC 0/6/12/18）
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  star-history:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate star history chart
+        uses: star-history/star-history@v7
+        with:
+          repo: "${{ github.repository }}"
+          type: "Date"
+          disable-cache: "false"
+          link: "https://api.star-history.com/svg?repos=${{ github.repository }}&type=Date"
